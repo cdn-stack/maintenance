@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CDN Maintenance</title>
+<link rel="icon" href="/assets/cdn-favicon.png" />
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cream:#F7F4EE;--cream2:#EDE9E0;--ink:#1C1A16;--ink2:#4A4640;--ink3:#8A857C;
+    --gold:#C8963E;--gold-light:#F2E4C4;--red:#C0392B;--red-light:#FDECEA;
+    --green:#2E7D52;--green-light:#E6F4ED;--blue:#285484;--blue-light:#E6EFF7;
+    --orange:#C05A1F;--orange-light:#FDF0E6;--border:#D8D3C8;--radius:10px;
+    --shadow:0 2px 12px rgba(28,26,22,0.08);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);min-height:100vh;font-size:14px;}
+  header{background:var(--ink);color:var(--cream);padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:58px;position:sticky;top:0;z-index:100;}
+  .logo{display:flex;align-items:center;gap:10px;}
+  .logo img{height:28px;filter:brightness(0) invert(1);opacity:0.9;}
+  .logo-text{font-family:'DM Serif Display',serif;font-size:16px;letter-spacing:-0.3px;color:var(--cream);}
+  .logo-sub{font-size:11px;font-weight:500;color:rgba(255,255,255,0.45);letter-spacing:0.08em;text-transform:uppercase;margin-left:2px;}
+  .header-right{display:flex;align-items:center;gap:12px;}
+  .stat-pill{background:rgba(255,255,255,0.1);border-radius:20px;padding:4px 12px;font-size:12px;font-weight:500;display:flex;align-items:center;gap:6px;}
+  .stat-pill .dot{width:7px;height:7px;border-radius:50%;}
+  .dot-red{background:#E74C3C;}.dot-amber{background:#F39C12;}.dot-green{background:#2ECC71;}
+  .logout-btn{font-size:12px;color:rgba(255,255,255,0.5);background:none;border:1px solid rgba(255,255,255,0.15);padding:5px 12px;border-radius:20px;cursor:pointer;font-family:'DM Sans',sans-serif;}
+  .logout-btn:hover{color:rgba(255,255,255,0.8);border-color:rgba(255,255,255,0.3);}
+  .nav-tabs{background:var(--ink);border-bottom:1px solid rgba(255,255,255,0.1);display:flex;padding:0 24px;gap:4px;}
+  .nav-tab{font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;color:rgba(255,255,255,0.5);background:none;border:none;cursor:pointer;padding:10px 16px;border-bottom:2px solid transparent;transition:color .15s,border-color .15s;}
+  .nav-tab:hover{color:rgba(255,255,255,0.8);}
+  .nav-tab.active{color:var(--cream);border-bottom-color:var(--gold);}
+  .layout{display:flex;height:calc(100vh - 94px);}
+  .page{display:none;flex:1;overflow-y:auto;}
+  .page.active{display:flex;}
+  .sidebar{width:220px;background:var(--cream2);border-right:1px solid var(--border);padding:20px 0;flex-shrink:0;overflow-y:auto;}
+  .sidebar-section{margin-bottom:24px;}
+  .sidebar-label{font-size:10px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:var(--ink3);padding:0 16px;margin-bottom:6px;}
+  .sidebar-item{display:flex;align-items:center;justify-content:space-between;padding:8px 16px;cursor:pointer;font-size:13px;color:var(--ink2);transition:background .15s;border:none;background:none;width:100%;text-align:left;}
+  .sidebar-item:hover{background:var(--cream);}
+  .sidebar-item.active{background:var(--ink);color:var(--cream);font-weight:500;}
+  .sidebar-item.active .count{background:rgba(255,255,255,0.2);color:var(--cream);}
+  .count{background:var(--cream);border-radius:20px;padding:1px 7px;font-size:11px;font-weight:600;color:var(--ink2);}
+  .count.urgent{background:var(--red);color:#fff;}
+  main{flex:1;overflow-y:auto;}
+  .toolbar{background:#fff;border-bottom:1px solid var(--border);padding:12px 24px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:10;flex-wrap:wrap;}
+  .search-wrap{position:relative;flex:1;min-width:160px;max-width:320px;}
+  .search-wrap svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--ink3);}
+  input[type="text"],input[type="date"],input[type="tel"],select,textarea{font-family:'DM Sans',sans-serif;font-size:13px;color:var(--ink);border:1px solid var(--border);border-radius:var(--radius);padding:8px 12px;background:var(--cream);outline:none;transition:border-color .15s;width:100%;}
+  input:focus,select:focus,textarea:focus{border-color:var(--blue);}
+  .search-wrap input{padding-left:32px;}
+  select{cursor:pointer;}
+  .btn{font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;padding:8px 16px;border-radius:var(--radius);border:none;cursor:pointer;transition:opacity .15s,transform .1s;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;}
+  .btn:active{transform:scale(0.98);}
+  .btn-primary{background:var(--ink);color:var(--cream);}
+  .btn-primary:hover{opacity:0.85;}
+  .btn-ghost{background:transparent;color:var(--ink2);border:1px solid var(--border);}
+  .btn-ghost:hover{background:var(--cream2);}
+  .btn-sm{padding:5px 10px;font-size:12px;}
+  .btn-danger{background:var(--red-light);color:var(--red);border:1px solid #f5c6c2;}
+  .summary-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:16px 24px 0;}
+  .summary-card{background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;}
+  .summary-card .sc-num{font-family:'DM Serif Display',serif;font-size:28px;line-height:1;margin-bottom:2px;}
+  .summary-card .sc-label{font-size:11px;color:var(--ink3);font-weight:500;}
+  .sc-urgent .sc-num{color:var(--red);}.sc-open .sc-num{color:var(--blue);}
+  .sc-progress .sc-num{color:var(--orange);}.sc-resolved .sc-num{color:var(--green);}
+  .issues-wrap{padding:20px 24px;}
+  .table-header{display:grid;grid-template-columns:2.4fr 1.4fr 1fr 1fr 1fr 1.2fr 90px;gap:8px;padding:0 14px 8px;font-size:11px;font-weight:600;letter-spacing:0.8px;text-transform:uppercase;color:var(--ink3);}
+  .issue-row{display:grid;grid-template-columns:2.4fr 1.4fr 1fr 1fr 1fr 1.2fr 90px;gap:8px;align-items:center;background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:6px;cursor:pointer;transition:box-shadow .15s,border-color .15s;animation:fadeIn .2s ease;}
+  .issue-row:hover{box-shadow:var(--shadow);border-color:#c5bfb5;}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+  .issue-title{font-weight:500;font-size:13px;}
+  .issue-source{font-size:11px;color:var(--ink3);margin-top:2px;}
+  .badge{display:inline-flex;align-items:center;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap;}
+  .badge-urgent{background:var(--red-light);color:var(--red);}
+  .badge-high{background:var(--orange-light);color:var(--orange);}
+  .badge-medium{background:var(--gold-light);color:#8a5a0a;}
+  .badge-low{background:var(--green-light);color:var(--green);}
+  .badge-open{background:var(--blue-light);color:var(--blue);}
+  .badge-progress{background:var(--gold-light);color:#8a5a0a;}
+  .badge-resolved{background:var(--green-light);color:var(--green);}
+  .badge-pending{background:var(--cream2);color:var(--ink3);}
+  .property-tag{font-size:12px;font-weight:500;color:var(--ink2);background:var(--cream2);padding:3px 8px;border-radius:6px;display:inline-block;}
+  .assignee{font-size:12px;color:var(--ink2);}
+  .date-cell{font-size:12px;color:var(--ink3);}
+  .actions{display:flex;gap:4px;}
+  .empty{text-align:center;padding:60px 24px;color:var(--ink3);}
+  .empty-icon{font-size:40px;margin-bottom:12px;}
+  .empty h3{color:var(--ink2);font-family:'DM Serif Display',serif;font-size:20px;margin-bottom:6px;}
+  .modal-overlay{position:fixed;inset:0;background:rgba(28,26,22,0.5);display:flex;align-items:center;justify-content:center;z-index:200;padding:20px;animation:fadeOverlay .2s ease;}
+  @keyframes fadeOverlay{from{opacity:0}to{opacity:1}}
+  .modal{background:#fff;border-radius:14px;width:100%;max-width:580px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.2);animation:slideUp .2s ease;}
+  @keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:none;opacity:1}}
+  .modal-head{padding:20px 24px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+  .modal-head h2{font-family:'DM Serif Display',serif;font-size:20px;font-weight:400;}
+  .modal-body{padding:20px 24px;}
+  .modal-footer{padding:14px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;}
+  .form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .form-group{margin-bottom:14px;}
+  .form-group label{display:block;font-size:11px;font-weight:600;letter-spacing:0.7px;text-transform:uppercase;color:var(--ink3);margin-bottom:5px;}
+  textarea{resize:vertical;min-height:70px;}
+  .close-btn{background:none;border:none;cursor:pointer;color:var(--ink3);font-size:18px;line-height:1;padding:2px 6px;border-radius:4px;}
+  .close-btn:hover{background:var(--cream2);color:var(--ink);}
+  .detail-overlay{position:fixed;inset:0;background:rgba(28,26,22,0.4);z-index:200;display:flex;justify-content:flex-end;animation:fadeOverlay .2s ease;}
+  .detail-panel{background:#fff;width:440px;max-width:95vw;height:100%;overflow-y:auto;box-shadow:-4px 0 30px rgba(0,0,0,0.15);animation:slideIn .2s ease;}
+  @keyframes slideIn{from{transform:translateX(30px);opacity:0}to{transform:none;opacity:1}}
+  .detail-head{padding:20px 20px 14px;border-bottom:1px solid var(--border);position:sticky;top:0;background:#fff;z-index:1;}
+  .detail-body{padding:20px;}
+  .detail-field{margin-bottom:18px;}
+  .detail-field-label{font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--ink3);margin-bottom:4px;}
+  .detail-field-val{font-size:14px;color:var(--ink);}
+  .notes-box{background:var(--cream);border-radius:var(--radius);padding:12px;font-size:13px;color:var(--ink2);line-height:1.6;white-space:pre-wrap;border:1px solid var(--border);}
+  .detail-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;}
+  .activity-log{margin-top:20px;border-top:1px solid var(--border);padding-top:16px;}
+  .activity-log-title{font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--ink3);margin-bottom:10px;}
+  .activity-item{font-size:12px;color:var(--ink3);padding:5px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;gap:8px;}
+  .activity-item:last-child{border-bottom:none;}
+  .activity-action{color:var(--ink2);}
+  .contractors-wrap{padding:20px 24px;flex:1;overflow-y:auto;}
+  .contractors-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;}
+  .contractor-card{background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;transition:box-shadow .15s,border-color .15s;animation:fadeIn .2s ease;}
+  .contractor-card:hover{box-shadow:var(--shadow);border-color:#c5bfb5;}
+  .contractor-name{font-weight:600;font-size:15px;margin-bottom:4px;}
+  .contractor-trade{font-size:12px;font-weight:600;letter-spacing:0.5px;color:var(--gold);text-transform:uppercase;margin-bottom:10px;}
+  .contractor-row{display:flex;align-items:flex-start;gap:8px;font-size:13px;color:var(--ink2);margin-bottom:6px;}
+  .contractor-row svg{flex-shrink:0;margin-top:1px;color:var(--ink3);}
+  .contractor-areas{display:flex;flex-wrap:wrap;gap:4px;margin-top:10px;}
+  .area-tag{font-size:11px;background:var(--blue-light);color:var(--blue);padding:2px 8px;border-radius:12px;font-weight:500;}
+  .card-actions{display:flex;gap:6px;margin-top:14px;padding-top:12px;border-top:1px solid var(--border);}
+  .contractor-empty{text-align:center;padding:60px 24px;color:var(--ink3);grid-column:1/-1;}
+  .toast{position:fixed;bottom:24px;right:24px;background:var(--ink);color:var(--cream);padding:10px 18px;border-radius:var(--radius);font-size:13px;font-weight:500;z-index:999;animation:toastIn .3s ease;box-shadow:0 4px 20px rgba(0,0,0,0.3);}
+  @keyframes toastIn{from{transform:translateY(20px);opacity:0}to{transform:none;opacity:1}}
+  .loading{text-align:center;padding:40px;color:var(--ink3);font-size:13px;}
+  .photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px;}
+  .photo-thumb{position:relative;aspect-ratio:1;border-radius:8px;overflow:hidden;background:var(--cream2);border:1px solid var(--border);}
+  .photo-thumb img{width:100%;height:100%;object-fit:cover;cursor:pointer;transition:opacity .15s;}
+  .photo-thumb img:hover{opacity:0.85;}
+  .photo-delete{position:absolute;top:4px;right:4px;background:rgba(0,0,0,0.55);color:#fff;border:none;border-radius:50%;width:22px;height:22px;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;}
+  .photo-delete:hover{background:var(--red);}
+  .photo-upload-area{border:2px dashed var(--border);border-radius:var(--radius);padding:20px;text-align:center;cursor:pointer;transition:border-color .15s;margin-top:10px;}
+  .photo-upload-area:hover{border-color:var(--blue);}
+  .photo-upload-area input{display:none;}
+  .photo-upload-label{font-size:13px;color:var(--ink3);cursor:pointer;}
+  .photo-upload-label span{color:var(--blue);font-weight:500;}
+  .photo-lightbox{position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:500;display:flex;align-items:center;justify-content:center;padding:20px;}
+  .photo-lightbox img{max-width:100%;max-height:100%;object-fit:contain;border-radius:8px;}
+  .photo-lightbox-close{position:absolute;top:16px;right:20px;color:#fff;font-size:28px;cursor:pointer;background:none;border:none;line-height:1;}
+  @media(max-width:768px){
+    .sidebar{display:none;}.table-header{display:none;}
+    .issue-row{grid-template-columns:1fr;gap:6px;}
+    .summary-bar{grid-template-columns:repeat(2,1fr);}
+    .form-row{grid-template-columns:1fr;}
+    .detail-panel{width:100vw;}
+    .contractors-grid{grid-template-columns:1fr;}
+    .stat-pill{display:none;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <img src="/assets/cdn-logo.png" alt="CDN Homes">
+    <div>
+      <div class="logo-text">CDN Homes</div>
+      <div class="logo-sub">Maintenance</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="stat-pill"><span class="dot dot-red"></span><span id="hdr-urgent">0 urgent</span></div>
+    <div class="stat-pill"><span class="dot dot-amber"></span><span id="hdr-open">0 open</span></div>
+    <div class="stat-pill"><span class="dot dot-green"></span><span id="hdr-resolved">0 resolved</span></div>
+    <button class="logout-btn" onclick="window.location='/logout'">Log out</button>
+  </div>
+</header>
+
+<nav class="nav-tabs">
+  <button class="nav-tab active" onclick="switchTab('issues',this)">Issues</button>
+  <button class="nav-tab" onclick="switchTab('contractors',this)">Contractors</button>
+</nav>
+
+<div class="layout">
+
+  <!-- ISSUES PAGE -->
+  <div id="page-issues" class="page active" style="width:100%">
+    <aside class="sidebar">
+      <div class="sidebar-section">
+        <div class="sidebar-label">Views</div>
+        <button class="sidebar-item active" onclick="setView('all',this)">All Issues <span class="count" id="cnt-all">0</span></button>
+        <button class="sidebar-item" onclick="setView('urgent',this)">Urgent <span class="count urgent" id="cnt-urgent">0</span></button>
+        <button class="sidebar-item" onclick="setView('open',this)">Open <span class="count" id="cnt-open">0</span></button>
+        <button class="sidebar-item" onclick="setView('in-progress',this)">In Progress <span class="count" id="cnt-progress">0</span></button>
+        <button class="sidebar-item" onclick="setView('resolved',this)">Resolved <span class="count" id="cnt-resolved">0</span></button>
+        <button class="sidebar-item" onclick="setView('pending',this)">Pending parts <span class="count" id="cnt-pending">0</span></button>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-label">Properties</div>
+        <div id="property-list"></div>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-label">Source</div>
+        <button class="sidebar-item" onclick="setSource('all',this)">All sources</button>
+        <button class="sidebar-item" onclick="setSource('Airbnb review',this)">Airbnb review</button>
+        <button class="sidebar-item" onclick="setSource('Airbnb message',this)">Airbnb message</button>
+        <button class="sidebar-item" onclick="setSource('SMS',this)">SMS / WhatsApp</button>
+        <button class="sidebar-item" onclick="setSource('Direct call',this)">Direct call</button>
+        <button class="sidebar-item" onclick="setSource('Inspection',this)">Inspection</button>
+        <button class="sidebar-item" onclick="setSource('Other',this)">Other</button>
+      </div>
+    </aside>
+    <main>
+      <div class="summary-bar">
+        <div class="summary-card sc-urgent"><div class="sc-num" id="sum-urgent">0</div><div class="sc-label">Urgent</div></div>
+        <div class="summary-card sc-open"><div class="sc-num" id="sum-open">0</div><div class="sc-label">Open</div></div>
+        <div class="summary-card sc-progress"><div class="sc-num" id="sum-progress">0</div><div class="sc-label">In progress</div></div>
+        <div class="summary-card sc-resolved"><div class="sc-num" id="sum-resolved">0</div><div class="sc-label">Resolved</div></div>
+      </div>
+      <div class="toolbar">
+        <div class="search-wrap">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input type="text" id="search-input" placeholder="Search issues, properties..." oninput="renderTable()">
+        </div>
+        <select id="filter-priority" onchange="renderTable()">
+          <option value="">All priorities</option>
+          <option>Urgent</option><option>High</option><option>Medium</option><option>Low</option>
+        </select>
+        <button class="btn btn-primary" onclick="openAddModal()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+          Log Issue
+        </button>
+      </div>
+      <div class="issues-wrap">
+        <div class="table-header">
+          <div>Issue</div><div>Property</div><div>Priority</div><div>Status</div><div>Assigned to</div><div>Logged</div><div></div>
+        </div>
+        <div id="issues-list"><div class="loading">Loading issues…</div></div>
+      </div>
+    </main>
+  </div>
+
+  <!-- CONTRACTORS PAGE -->
+  <div id="page-contractors" class="page" style="width:100%;flex-direction:column;">
+    <div class="toolbar">
+      <div class="search-wrap">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="text" id="c-search" placeholder="Search contractors, trades, areas..." oninput="renderContractors()">
+      </div>
+      <select id="c-filter-trade" onchange="renderContractors()"><option value="">All trades</option></select>
+      <button class="btn btn-primary" onclick="openContractorModal()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+        Add Contractor
+      </button>
+    </div>
+    <div class="contractors-wrap">
+      <div class="contractors-grid" id="contractors-grid"><div class="loading">Loading contractors…</div></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ISSUE MODAL -->
+<div id="modal" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-head"><h2 id="modal-title">Log new issue</h2><button class="close-btn" onclick="closeModal()">✕</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label>Issue title *</label><input type="text" id="f-title" placeholder="e.g. Broken shower head in bathroom 2"></div>
+      <div class="form-row">
+        <div class="form-group"><label>Property *</label><select id="f-property"><option value="">Select property...</option></select></div>
+        <div class="form-group"><label>Source</label><select id="f-source"><option>Airbnb review</option><option>Airbnb message</option><option>SMS</option><option>Direct call</option><option>Inspection</option><option>Other</option></select></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Priority *</label><select id="f-priority"><option>Urgent</option><option selected>High</option><option>Medium</option><option>Low</option></select></div>
+        <div class="form-group"><label>Status</label><select id="f-status"><option value="open">Open</option><option value="in-progress">In Progress</option><option value="resolved">Resolved</option><option value="pending">Pending parts</option></select></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Assigned to</label><input type="text" id="f-assignee" placeholder="e.g. Cleaning team, Dave"></div>
+        <div class="form-group"><label>Date logged</label><input type="date" id="f-date"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Cost (£)</label><input type="text" id="f-cost" placeholder="e.g. 150"></div>
+        <div class="form-group"><label>Invoice / ref number</label><input type="text" id="f-invoice" placeholder="e.g. INV-2024-001"></div>
+      </div>
+      <div class="form-group"><label>Notes / description</label><textarea id="f-notes" placeholder="Describe the issue, steps taken, parts needed..."></textarea></div>
+      <div class="form-group"><label>Guest name (optional)</label><input type="text" id="f-guest" placeholder="e.g. Sarah M."></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" id="save-issue-btn" onclick="saveIssue()">Save issue</button></div>
+  </div>
+</div>
+
+<!-- ISSUE DETAIL PANEL -->
+<div id="detail-overlay" class="detail-overlay" style="display:none" onclick="if(event.target===this)closeDetail()">
+  <div class="detail-panel">
+    <div class="detail-head">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+        <div style="font-weight:600;font-size:15px;flex:1" id="d-title"></div>
+        <button class="close-btn" onclick="closeDetail()">✕</button>
+      </div>
+      <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap" id="d-badges"></div>
+    </div>
+    <div class="detail-body">
+      <div class="detail-field"><div class="detail-field-label">Property</div><div class="detail-field-val" id="d-property"></div><div style="font-size:12px;color:var(--ink3);margin-top:2px" id="d-address"></div></div>
+      <div class="detail-field"><div class="detail-field-label">Source</div><div class="detail-field-val" id="d-source"></div></div>
+      <div class="detail-field"><div class="detail-field-label">Assigned to</div><div class="detail-field-val" id="d-assignee"></div></div>
+      <div class="detail-field"><div class="detail-field-label">Guest</div><div class="detail-field-val" id="d-guest"></div></div>
+      <div class="detail-field"><div class="detail-field-label">Date logged</div><div class="detail-field-val" id="d-date"></div></div>
+      <div class="detail-field"><div class="detail-field-label">Cost</div><div class="detail-field-val" id="d-cost"></div></div>
+      <div class="detail-field"><div class="detail-field-label">Invoice / ref</div><div class="detail-field-val" id="d-invoice"></div></div>
+      <div class="detail-field"><div class="detail-field-label">Notes</div><div class="notes-box" id="d-notes">-</div></div>
+
+      <!-- Photos section -->
+      <div class="detail-field">
+        <div class="detail-field-label">Photos <span id="d-photo-count" style="font-weight:400;color:var(--ink3)"></span></div>
+        <div class="photo-grid" id="d-photo-grid"></div>
+        <div class="photo-upload-area" id="d-upload-area">
+          <input type="file" id="d-photo-input" accept="image/*,.heic" multiple>
+          <label class="photo-upload-label" for="d-photo-input">
+            📷 <span>Tap to add photos</span> — up to 5 per issue
+          </label>
+        </div>
+      </div>
+
+      <div class="detail-actions" id="d-actions"></div>
+      <div class="activity-log" id="d-activity" style="display:none">
+        <div class="activity-log-title">Activity</div>
+        <div id="d-activity-items"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CONTRACTOR MODAL -->
+<div id="c-modal" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeContractorModal()">
+  <div class="modal">
+    <div class="modal-head"><h2 id="c-modal-title">Add contractor</h2><button class="close-btn" onclick="closeContractorModal()">✕</button></div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group"><label>Name / company *</label><input type="text" id="c-name" placeholder="e.g. Dave Smith Plumbing"></div>
+        <div class="form-group"><label>Trade / specialty *</label><input type="text" id="c-trade" placeholder="e.g. Plumbing, Boilers"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Phone number</label><input type="tel" id="c-phone" placeholder="07700 900123"></div>
+        <div class="form-group"><label>Email</label><input type="text" id="c-email" placeholder="dave@example.com"></div>
+      </div>
+      <div class="form-group"><label>Areas covered (comma separated)</label><input type="text" id="c-areas" placeholder="e.g. East London, E1, Whitechapel"></div>
+      <div class="form-row">
+        <div class="form-group"><label>Day rate / callout</label><input type="text" id="c-rate" placeholder="e.g. £250/day, £80 callout"></div>
+        <div class="form-group"><label>Certification / accreditation</label><input type="text" id="c-cert" placeholder="e.g. Gas Safe, NICEIC"></div>
+      </div>
+      <div class="form-group"><label>Notes</label><textarea id="c-notes" placeholder="Reliability, typical response time, preferred contact method..."></textarea></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeContractorModal()">Cancel</button><button class="btn btn-primary" id="save-contractor-btn" onclick="saveContractor()">Save contractor</button></div>
+  </div>
+</div>
+
+<!-- PHOTO LIGHTBOX -->
+<div id="photo-lightbox" class="photo-lightbox" style="display:none" onclick="closeLightbox()">
+  <button class="photo-lightbox-close" onclick="closeLightbox()">✕</button>
+  <img id="lightbox-img" src="" alt="Issue photo">
+</div>
+
+<script>
+// ─── State ───────────────────────────────────────────────────────
+let issues = [];
+let contractors = [];
+let propertyData = [];
+let editingIssueId = null;
+let editingContractorId = null;
+let viewFilter = 'all';
+let sourceFilter = 'all';
+let propFilter = null;
+
+// ─── Helpers ─────────────────────────────────────────────────────
+function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function fmtDate(d){ if(!d) return '-'; return new Date(d+'T12:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}); }
+function priorityBadge(p){ const m={Urgent:'badge-urgent',High:'badge-high',Medium:'badge-medium',Low:'badge-low'}; return '<span class="badge '+(m[p]||'badge-medium')+'">'+esc(p)+'</span>'; }
+function statusBadge(s){ const label={open:'Open','in-progress':'In Progress',resolved:'Resolved',pending:'Pending parts'}; const cls={open:'badge-open','in-progress':'badge-progress',resolved:'badge-resolved',pending:'badge-pending'}; return '<span class="badge '+(cls[s]||'badge-pending')+'">'+(label[s]||s)+'</span>'; }
+function showToast(msg){ const t=document.createElement('div'); t.className='toast'; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),2800); }
+
+// ─── API helpers ──────────────────────────────────────────────────
+async function api(url, method='GET', body=null){
+  const opts = { method, headers: {'Content-Type':'application/json'} };
+  if(body) opts.body = JSON.stringify(body);
+  const res = await fetch(url, opts);
+  if(!res.ok){ const e = await res.json().catch(()=>({error:'Request failed'})); throw new Error(e.error||'Request failed'); }
+  return res.json();
+}
+
+// ─── Boot ─────────────────────────────────────────────────────────
+async function boot(){
+  try {
+    [propertyData, issues, contractors] = await Promise.all([
+      api('/api/properties'),
+      api('/api/issues'),
+      api('/api/contractors'),
+    ]);
+    renderTable();
+    renderContractors();
+  } catch(e) {
+    document.getElementById('issues-list').innerHTML = '<div class="empty"><div class="empty-icon">⚠️</div><h3>Could not load data</h3><p>'+esc(e.message)+'</p></div>';
+  }
+}
+
+// ─── Issues ───────────────────────────────────────────────────────
+function getFiltered(){
+  const q = (document.getElementById('search-input').value||'').toLowerCase();
+  const fp = document.getElementById('filter-priority').value;
+  return issues.filter(i => {
+    if(viewFilter==='urgent' && i.priority!=='Urgent') return false;
+    if(viewFilter==='open' && i.status!=='open') return false;
+    if(viewFilter==='in-progress' && i.status!=='in-progress') return false;
+    if(viewFilter==='resolved' && i.status!=='resolved') return false;
+    if(viewFilter==='pending' && i.status!=='pending') return false;
+    if(sourceFilter!=='all' && i.source!==sourceFilter) return false;
+    if(propFilter && i.property!==propFilter) return false;
+    if(fp && i.priority!==fp) return false;
+    if(q && ![(i.title||''),(i.property||''),(i.notes||'')].join(' ').toLowerCase().includes(q)) return false;
+    return true;
+  });
+}
+
+function renderTable(){
+  const list = getFiltered();
+  const el = document.getElementById('issues-list');
+  if(!list.length){ el.innerHTML='<div class="empty"><div class="empty-icon">🏠</div><h3>No issues found</h3><p>Try adjusting your filters or log a new issue.</p></div>'; updateCounts(); return; }
+  el.innerHTML = list.map(i =>
+    '<div class="issue-row" onclick="openDetail('+i.id+')">'
+    +'<div><div class="issue-title">'+esc(i.title)+'</div><div class="issue-source">'+esc(i.source||'')+(i.guest?' · '+esc(i.guest):'')+'</div></div>'
+    +'<div><span class="property-tag">'+esc(i.property)+'</span></div>'
+    +'<div>'+priorityBadge(i.priority)+'</div>'
+    +'<div>'+statusBadge(i.status)+'</div>'
+    +'<div class="assignee">'+esc(i.assignee||'-')+'</div>'
+    +'<div class="date-cell">'+fmtDate(i.date)+'</div>'
+    +'<div class="actions" onclick="event.stopPropagation()">'
+    +'<button class="btn btn-ghost btn-sm" onclick="openEditModal('+i.id+')">Edit</button>'
+    +'<button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="deleteIssue('+i.id+')">Del</button>'
+    +'</div></div>'
+  ).join('');
+  updateCounts();
+}
+
+function updateCounts(){
+  const cnt = v => issues.filter(i=>i.status===v).length;
+  const urgent = issues.filter(i=>i.priority==='Urgent').length;
+  document.getElementById('cnt-all').textContent = issues.length;
+  document.getElementById('cnt-urgent').textContent = urgent;
+  document.getElementById('cnt-open').textContent = cnt('open');
+  document.getElementById('cnt-progress').textContent = cnt('in-progress');
+  document.getElementById('cnt-resolved').textContent = cnt('resolved');
+  document.getElementById('cnt-pending').textContent = cnt('pending');
+  document.getElementById('sum-urgent').textContent = urgent;
+  document.getElementById('sum-open').textContent = cnt('open');
+  document.getElementById('sum-progress').textContent = cnt('in-progress');
+  document.getElementById('sum-resolved').textContent = cnt('resolved');
+  document.getElementById('hdr-urgent').textContent = urgent+' urgent';
+  document.getElementById('hdr-open').textContent = cnt('open')+' open';
+  document.getElementById('hdr-resolved').textContent = cnt('resolved')+' resolved';
+  document.getElementById('property-list').innerHTML = propertyData.map(p => {
+    const c = issues.filter(i=>i.property===p.nick).length;
+    return '<button class="sidebar-item'+(propFilter===p.nick?' active':'')+'" onclick="filterByProp(\''+p.nick.replace(/'/g,"\\'")+'\''+',this)">'+esc(p.nick)+' <span class="count">'+c+'</span></button>';
+  }).join('');
+}
+
+function filterByProp(p, btn){
+  propFilter = propFilter===p ? null : p;
+  document.querySelectorAll('#property-list .sidebar-item').forEach(b=>b.classList.remove('active'));
+  if(propFilter) btn.classList.add('active');
+  renderTable();
+}
+function setView(v, btn){ viewFilter=v; document.querySelectorAll('#page-issues .sidebar-section:first-child .sidebar-item').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); renderTable(); }
+function setSource(s, btn){ sourceFilter=s; document.querySelectorAll('#page-issues .sidebar-section:nth-child(3) .sidebar-item').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); renderTable(); }
+
+function populateIssueSelects(){
+  document.getElementById('f-property').innerHTML = '<option value="">Select property...</option>'
+    + propertyData.map(p=>'<option value="'+esc(p.nick)+'">'+esc(p.nick)+(p.address?' — '+esc(p.address):'')+'</option>').join('');
+}
+
+function openAddModal(){
+  editingIssueId = null;
+  document.getElementById('modal-title').textContent = 'Log new issue';
+  ['f-title','f-notes','f-guest','f-cost','f-invoice','f-assignee'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('f-priority').value = 'High';
+  document.getElementById('f-status').value = 'open';
+  document.getElementById('f-source').value = 'Airbnb review';
+  document.getElementById('f-date').value = new Date().toISOString().slice(0,10);
+  populateIssueSelects();
+  document.getElementById('modal').style.display = 'flex';
+  setTimeout(()=>document.getElementById('f-title').focus(),100);
+}
+
+function openEditModal(id){
+  const i = issues.find(x=>x.id===id); if(!i) return;
+  editingIssueId = id;
+  document.getElementById('modal-title').textContent = 'Edit issue';
+  populateIssueSelects();
+  document.getElementById('f-title').value = i.title;
+  document.getElementById('f-property').value = i.property;
+  document.getElementById('f-source').value = i.source||'';
+  document.getElementById('f-priority').value = i.priority;
+  document.getElementById('f-status').value = i.status;
+  document.getElementById('f-assignee').value = i.assignee||'';
+  document.getElementById('f-date').value = i.date||'';
+  document.getElementById('f-notes').value = i.notes||'';
+  document.getElementById('f-guest').value = i.guest||'';
+  document.getElementById('f-cost').value = i.cost||'';
+  document.getElementById('f-invoice').value = i.invoice||'';
+  document.getElementById('modal').style.display = 'flex';
+}
+
+function closeModal(){ document.getElementById('modal').style.display='none'; }
+
+async function saveIssue(){
+  const title = document.getElementById('f-title').value.trim();
+  const property = document.getElementById('f-property').value;
+  if(!title){ alert('Please enter an issue title.'); return; }
+  if(!property){ alert('Please select a property.'); return; }
+  const btn = document.getElementById('save-issue-btn');
+  btn.disabled = true; btn.textContent = 'Saving…';
+  const data = {
+    title, property,
+    source:    document.getElementById('f-source').value,
+    priority:  document.getElementById('f-priority').value,
+    status:    document.getElementById('f-status').value,
+    assignee:  document.getElementById('f-assignee').value.trim(),
+    date:      document.getElementById('f-date').value,
+    notes:     document.getElementById('f-notes').value.trim(),
+    guest:     document.getElementById('f-guest').value.trim(),
+    cost:      document.getElementById('f-cost').value.trim(),
+    invoice:   document.getElementById('f-invoice').value.trim(),
+  };
+  try {
+    if(editingIssueId){
+      const updated = await api('/api/issues/'+editingIssueId,'PATCH',data);
+      issues = issues.map(i=>i.id===editingIssueId?updated:i);
+      showToast('Issue updated');
+    } else {
+      const created = await api('/api/issues','POST',data);
+      issues.unshift(created);
+      showToast('Issue logged');
+    }
+    closeModal(); renderTable();
+  } catch(e){ alert(e.message); }
+  finally{ btn.disabled=false; btn.textContent='Save issue'; }
+}
+
+async function deleteIssue(id){
+  if(!confirm('Delete this issue?')) return;
+  try {
+    await api('/api/issues/'+id,'DELETE');
+    issues = issues.filter(i=>i.id!==id);
+    renderTable(); closeDetail(); showToast('Issue deleted');
+  } catch(e){ alert(e.message); }
+}
+
+async function openDetail(id){
+  try {
+    const i = await api('/api/issues/'+id);
+    document.getElementById('d-title').textContent = i.title;
+    document.getElementById('d-badges').innerHTML = priorityBadge(i.priority)+' '+statusBadge(i.status);
+    document.getElementById('d-property').textContent = i.property;
+    const pd = propertyData.find(p=>p.nick===i.property);
+    document.getElementById('d-address').textContent = pd&&pd.address ? pd.address : '';
+    document.getElementById('d-source').textContent = i.source||'-';
+    document.getElementById('d-assignee').textContent = i.assignee||'Unassigned';
+    document.getElementById('d-guest').textContent = i.guest||'-';
+    document.getElementById('d-date').textContent = fmtDate(i.date);
+    document.getElementById('d-cost').textContent = i.cost ? '£'+i.cost : '-';
+    document.getElementById('d-invoice').textContent = i.invoice||'-';
+    document.getElementById('d-notes').textContent = i.notes||'-';
+    const statuses = [{val:'open',label:'Open'},{val:'in-progress',label:'In Progress'},{val:'resolved',label:'Resolved'},{val:'pending',label:'Pending parts'}];
+    document.getElementById('d-actions').innerHTML =
+      statuses.map(s=>'<button class="btn btn-sm '+(i.status===s.val?'btn-primary':'btn-ghost')+'" onclick="quickStatus('+id+',\''+s.val+'\')">'+s.label+'</button>').join('')
+      +'<button class="btn btn-ghost btn-sm" onclick="closeDetail();openEditModal('+id+')">Edit</button>';
+    // Activity log
+    if(i.activity && i.activity.length){
+      document.getElementById('d-activity').style.display='block';
+      document.getElementById('d-activity-items').innerHTML = i.activity.map(a=>
+        '<div class="activity-item"><span class="activity-action">'+esc(a.action)+(a.new_value?' → '+esc(a.new_value):'')+'</span><span>'+new Date(a.logged_at).toLocaleDateString('en-GB',{day:'numeric',month:'short'})+'</span></div>'
+      ).join('');
+    } else { document.getElementById('d-activity').style.display='none'; }
+    document.getElementById('detail-overlay').style.display = 'flex';
+    loadPhotos(id);
+  } catch(e){ alert(e.message); }
+}
+
+async function quickStatus(id, status){
+  try {
+    const updated = await api('/api/issues/'+id,'PATCH',{status});
+    issues = issues.map(i=>i.id===id?{...i,status}:i);
+    renderTable(); openDetail(id); showToast('Status updated');
+  } catch(e){ alert(e.message); }
+}
+function closeDetail(){ document.getElementById('detail-overlay').style.display='none'; }
+
+// ─── Contractors ──────────────────────────────────────────────────
+async function renderContractors(){
+  const q = (document.getElementById('c-search').value||'').toLowerCase();
+  const ft = document.getElementById('c-filter-trade').value;
+  const trades = [...new Set(contractors.map(c=>c.trade).filter(Boolean))].sort();
+  const cur = document.getElementById('c-filter-trade').value;
+  document.getElementById('c-filter-trade').innerHTML = '<option value="">All trades</option>'+trades.map(t=>'<option '+(t===cur?'selected':'')+'>'+esc(t)+'</option>').join('');
+  const list = contractors.filter(c => {
+    if(ft && c.trade!==ft) return false;
+    if(q && ![(c.name||''),(c.trade||''),(c.areas||''),(c.notes||'')].join(' ').toLowerCase().includes(q)) return false;
+    return true;
+  });
+  const grid = document.getElementById('contractors-grid');
+  if(!list.length){ grid.innerHTML='<div class="contractor-empty"><div style="font-size:40px;margin-bottom:12px">🔧</div><h3 style="font-family:DM Serif Display,serif;font-size:20px;color:var(--ink2);margin-bottom:6px">'+(contractors.length?'No results':'No contractors yet')+'</h3><p>'+(contractors.length?'Try a different search.':'Click Add Contractor to build your directory.')+'</p></div>'; return; }
+  grid.innerHTML = list.map(c => {
+    const areaTags = (c.areas||'').split(',').map(a=>a.trim()).filter(Boolean).map(a=>'<span class="area-tag">'+esc(a)+'</span>').join('');
+    return '<div class="contractor-card">'
+      +'<div class="contractor-name">'+esc(c.name)+'</div>'
+      +'<div class="contractor-trade">'+esc(c.trade)+'</div>'
+      +(c.phone?'<div class="contractor-row"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81 19.79 19.79 0 01.1 1.18 2 2 0 012.11 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.91 7.09a16 16 0 006 6l.45-.45a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg><a href="tel:'+esc(c.phone)+'" style="color:var(--blue)">'+esc(c.phone)+'</a></div>':'')
+      +(c.email?'<div class="contractor-row"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 01-2.06 0L2 7"/></svg><a href="mailto:'+esc(c.email)+'" style="color:var(--blue)">'+esc(c.email)+'</a></div>':'')
+      +(c.rate?'<div class="contractor-row"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>'+esc(c.rate)+'</div>':'')
+      +(c.cert?'<div class="contractor-row"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>'+esc(c.cert)+'</div>':'')
+      +(areaTags?'<div class="contractor-areas">'+areaTags+'</div>':'')
+      +(c.notes?'<div style="font-size:12px;color:var(--ink3);margin-top:10px;line-height:1.5">'+esc(c.notes)+'</div>':'')
+      +'<div class="card-actions"><button class="btn btn-ghost btn-sm" onclick="openEditContractor('+c.id+')">Edit</button><button class="btn btn-danger btn-sm" onclick="deleteContractor('+c.id+')">Remove</button></div>'
+      +'</div>';
+  }).join('');
+}
+
+function openContractorModal(){
+  editingContractorId=null;
+  document.getElementById('c-modal-title').textContent='Add contractor';
+  ['c-name','c-trade','c-phone','c-email','c-areas','c-rate','c-cert','c-notes'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('c-modal').style.display='flex';
+  setTimeout(()=>document.getElementById('c-name').focus(),100);
+}
+function openEditContractor(id){
+  const c=contractors.find(x=>x.id===id); if(!c) return;
+  editingContractorId=id;
+  document.getElementById('c-modal-title').textContent='Edit contractor';
+  document.getElementById('c-name').value=c.name||'';
+  document.getElementById('c-trade').value=c.trade||'';
+  document.getElementById('c-phone').value=c.phone||'';
+  document.getElementById('c-email').value=c.email||'';
+  document.getElementById('c-areas').value=c.areas||'';
+  document.getElementById('c-rate').value=c.rate||'';
+  document.getElementById('c-cert').value=c.cert||'';
+  document.getElementById('c-notes').value=c.notes||'';
+  document.getElementById('c-modal').style.display='flex';
+}
+function closeContractorModal(){ document.getElementById('c-modal').style.display='none'; }
+
+async function saveContractor(){
+  const name=document.getElementById('c-name').value.trim();
+  const trade=document.getElementById('c-trade').value.trim();
+  if(!name){alert('Please enter a name.');return;}
+  if(!trade){alert('Please enter a trade.');return;}
+  const btn=document.getElementById('save-contractor-btn');
+  btn.disabled=true; btn.textContent='Saving…';
+  const data={name,trade,phone:document.getElementById('c-phone').value.trim(),email:document.getElementById('c-email').value.trim(),areas:document.getElementById('c-areas').value.trim(),rate:document.getElementById('c-rate').value.trim(),cert:document.getElementById('c-cert').value.trim(),notes:document.getElementById('c-notes').value.trim()};
+  try{
+    if(editingContractorId){
+      const updated=await api('/api/contractors/'+editingContractorId,'PATCH',data);
+      contractors=contractors.map(c=>c.id===editingContractorId?updated:c);
+      showToast('Contractor updated');
+    } else {
+      const created=await api('/api/contractors','POST',data);
+      contractors.unshift(created);
+      showToast('Contractor added');
+    }
+    closeContractorModal(); renderContractors();
+  } catch(e){alert(e.message);}
+  finally{btn.disabled=false; btn.textContent='Save contractor';}
+}
+
+async function deleteContractor(id){
+  if(!confirm('Remove this contractor?')) return;
+  try{
+    await api('/api/contractors/'+id,'DELETE');
+    contractors=contractors.filter(c=>c.id!==id);
+    renderContractors(); showToast('Contractor removed');
+  } catch(e){alert(e.message);}
+}
+
+// ─── Photos ───────────────────────────────────────────────────────
+let currentIssueId = null;
+
+async function loadPhotos(issueId) {
+  currentIssueId = issueId;
+  const photos = await api('/api/issues/'+issueId+'/photos');
+  renderPhotoGrid(photos);
+
+  // Wire up the file input
+  const input = document.getElementById('d-photo-input');
+  input.onchange = () => uploadPhotos(issueId, input.files);
+
+  // Show/hide upload area based on count
+  document.getElementById('d-upload-area').style.display = photos.length >= 5 ? 'none' : 'block';
+}
+
+function renderPhotoGrid(photos) {
+  const grid = document.getElementById('d-photo-grid');
+  const countEl = document.getElementById('d-photo-count');
+  countEl.textContent = photos.length ? `(${photos.length}/5)` : '';
+
+  if(!photos.length) { grid.innerHTML = ''; return; }
+
+  grid.innerHTML = photos.map(p =>
+    '<div class="photo-thumb">'
+    +'<img src="/uploads/'+esc(p.filename)+'" alt="'+esc(p.original_name||'Photo')+'" onclick="openLightbox(\'/uploads/'+esc(p.filename)+'\')">'
+    +'<button class="photo-delete" onclick="deletePhoto('+p.id+','+currentIssueId+')" title="Delete photo">✕</button>'
+    +'</div>'
+  ).join('');
+}
+
+async function uploadPhotos(issueId, files) {
+  if(!files || !files.length) return;
+  const formData = new FormData();
+  for(const file of files) formData.append('photos', file);
+  try {
+    const btn = document.getElementById('d-upload-area');
+    btn.style.opacity = '0.5';
+    const res = await fetch('/api/issues/'+issueId+'/photos', { method:'POST', body: formData });
+    if(!res.ok){ const e = await res.json(); throw new Error(e.error); }
+    await loadPhotos(issueId);
+    showToast('Photos uploaded');
+  } catch(e) { alert(e.message); }
+  finally {
+    document.getElementById('d-upload-area').style.opacity = '1';
+    document.getElementById('d-photo-input').value = '';
+  }
+}
+
+async function deletePhoto(photoId, issueId) {
+  if(!confirm('Delete this photo?')) return;
+  try {
+    await api('/api/photos/'+photoId, 'DELETE');
+    await loadPhotos(issueId);
+    showToast('Photo deleted');
+  } catch(e) { alert(e.message); }
+}
+
+function openLightbox(src) {
+  document.getElementById('lightbox-img').src = src;
+  document.getElementById('photo-lightbox').style.display = 'flex';
+}
+function closeLightbox() {
+  document.getElementById('photo-lightbox').style.display = 'none';
+}
+
+function switchTab(tab,btn){
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('page-issues').classList.toggle('active',tab==='issues');
+  document.getElementById('page-contractors').classList.toggle('active',tab==='contractors');
+}
+
+// ─── Start ────────────────────────────────────────────────────────
+boot();
+</script>
+</body>
+</html>
